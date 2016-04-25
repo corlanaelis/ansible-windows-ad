@@ -1,0 +1,8 @@
+List of files:
+
+current working directory
+/etc/ansble/hosts
+
+-- install required --
+pip install xmltodict
+pip install pywinrm

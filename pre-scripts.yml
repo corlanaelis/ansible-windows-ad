@@ -1,0 +1,117 @@
+---
+# This playbook runs pre scripts 
+# necessary for initial setups
+# before running follow-up scripts
+
+# Scripts that need to be run in the initial phase of server provisioning
+
+- name: Create new forest and promote dc1 to domain controller
+  hosts: dc1
+  gather_facts: true
+# vagrant provision does not allow prompts
+#  vars_prompt:
+#    - name: "user"
+#      prompt: "Domain Join username"
+#      private: no
+#    - name: "password"
+#      prompt: "Domain Join password"
+#      private: yes
+  tasks:
+    - name: Configure Internal Network settings
+      script: ./ps-scripts/Set-IntnetSettings.ps1
+    - name: Create New Forest and Domain Controller
+      script: "./ps-scripts/Create-NewDomain.ps1 -u 'Administrator' -p 'vagrant'"
+      ignore_errors: yes
+# vagrant provision does not allow prompts
+#      script: "Create-NewDomain.ps1 -u '{{ user }}' -p '{{ password }}'"
+
+    - name: Restart Machine 
+      script: ./ps-scripts/shutdown.ps1
+      ignore_errors: yes
+    - pause: minutes=7
+    # - name: waiting for server to come back
+      # local_action:
+        # module: wait_for
+        # host: "{{ inventory_hostname }}"
+        # delay: 10
+        # timeout: 300
+        # state: started
+        # ignore_errors: yes
+    - name: Re-configure DNS address because promoted DC loses DNS config
+      script: ./ps-scripts/Set-IntnetSettings.ps1
+      ignore_errors: yes
+
+- name: Promote dc2 to domain controller
+  hosts: dc2
+  gather_facts: true
+# vagrant provision does not allow prompts
+#  vars_prompt:
+#    - name: "user"
+#      prompt: "Domain Join username"
+#      private: no
+#    - name: "password"
+#      prompt: "Domain Join password"
+#      private: yes
+  tasks:
+    - name: Configure Internal Network settings
+      script: ./ps-scripts/Set-IntnetSettings.ps1
+    - name: Join domain script
+      script: "./ps-scripts/client-djoin.ps1 -u Administrator -p vagrant"
+      ignore_errors: true
+    - name: Restart Machine 
+      script: ./ps-scripts/shutdown.ps1
+      ignore_errors: yes
+    - pause: minutes=3
+    # - name: Waiting for server to come back
+      # local_action:
+        # module: wait_for
+        # host: "{{ inventory_hostname }}"
+        # delay: 10
+        # timeout: 300
+        # state: started
+        # ignore_errors: yes
+    - name: Promote to Domain Controller
+      script: "./ps-scripts/Promote-DC.ps1 -u Administrator -p vagrant"
+      ignore_errors: yes
+    - name: Restart Machine 
+      script: ./ps-scripts/shutdown.ps1
+      ignore_errors: yes
+    - pause: minutes=5
+    # - name: waiting for server to come back
+      # local_action:
+        # module: wait_for
+        # host: "{{ inventory_hostname }}"
+        # delay: 10
+        # timeout: 300
+        # state: started
+        # ignore_errors: yes
+
+- name: Configure other servers
+  hosts: wsus,client
+  gather_facts: true
+# vagrant provision does not allow prompts
+#  vars_prompt:
+#    - name: "user"
+#      prompt: "Domain Join username"
+#      private: no
+#    - name: "password"
+#      prompt: "Domain Join password"
+#      private: yes
+  tasks:
+    - name: Configure Internal Network settings
+      script: ./ps-scripts/Set-IntnetSettings.ps1
+    - name: Join domain script
+      script: "./ps-scripts/client-djoin.ps1 -u Administrator -p vagrant"
+      ignore_errors: yes
+    - name: Restart Machine
+      script: ./ps-scripts/shutdown.ps1
+      ignore_errors: yes
+    - pause: minutes=3
+    # - name: waiting for server to come back
+      # local_action:
+        # module: wait_for
+        # host: "{{ inventory_hostname }}"
+        # delay: 10
+        # timeout: 300
+        # state: started
+- include: post-scripts.yml

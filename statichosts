@@ -1,0 +1,40 @@
+#[defaults]
+#55986
+[dc1]
+192.168.1.11
+[dc2]
+192.168.1.12
+[wsus]
+192.168.1.13
+[client]
+192.168.1.14
+
+#group 'allin' with all servers
+[allservers:children]
+dc1
+dc2
+wsus
+client
+
+#vars applied to allin
+#winrm non ssl port. ssl is 5986
+[allservers:vars]
+ansible_ssh_user=Administrator
+ansible_ssh_pass=vagrant
+ansible_connection=winrm
+ansible_ssh_port=5985
+ansible_winrm_server_cert_validation=ignore
+
+
+#all domain controllers
+[dc:children]
+dc1
+dc2
+
+#winrm non ssl port. ssl is 5986
+[dc:vars]
+ansible_ssh_user=Administrator
+ansible_ssh_pass=vagrant
+ansible_connection=winrm
+ansible_ssh_port=5985
+ansible_winrm_server_cert_validation=ignore
